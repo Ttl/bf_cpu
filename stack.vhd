@@ -2,7 +2,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
--- Stack used to hold 
+-- Stack used to store PC for jumps
 entity stack is
     Port ( clk : in  STD_LOGIC;
            push, pop : in  STD_LOGIC;
