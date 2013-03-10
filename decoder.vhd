@@ -25,13 +25,7 @@ end decoder;
 architecture Behavioral of decoder is
 
 begin
-d_alutoreg <= '0';
-d_alub <= "00";
-d_alua <= "00";
-d_write <= '0';
-d_aluop <= "00";
-d_jumpf <= '0';
-d_jumpb <= '0';
+
 
 process(instr)
 begin
@@ -61,6 +55,14 @@ begin
 
 -- d_write
 -- 1 : write alu result to output
+
+d_alutoreg <= '0';
+d_alub <= "00";
+d_alua <= "00";
+d_write <= '0';
+d_aluop <= "00";
+d_jumpf <= '0';
+d_jumpb <= '0';
 
 case instr is
     
