@@ -16,11 +16,13 @@ end memory;
 
 architecture Behavioral of memory is
 
-impure function init_mem(mif_file_name : in string) return mem_type14 is
+type memtype is array(0 to 2**12-1) of std_logic_vector(7 downto 0);
+
+impure function init_mem(mif_file_name : in string) return memtype is
     file mif_file : text open read_mode is mif_file_name;
     variable mif_line : line;
     variable temp_bv : bit_vector(13 downto 0);
-    variable temp_mem : mem_type14;
+    variable temp_mem : memtype;
     variable i : integer := 0;
 begin
         while not endfile(mif_file) loop
@@ -31,13 +33,11 @@ begin
             --end if;
             i := i + 1;
         end loop;
-        for j in i to mem_type14'length-1 loop
+        for j in i to memtype'length-1 loop
             temp_mem(j) := (others => '0');
         end loop;
     return temp_mem;
 end function;
-
-type memtype is array(0 to 2**12) of std_logic_vector(7 downto 0);
 
 signal mem : memtype := init_mem(CONTENTS);
 begin

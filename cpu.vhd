@@ -26,6 +26,9 @@ signal pc : std_logic_vector(12 downto 0);
 signal i_wd : std_logic_vector(7 downto 0) := (others => '0');
 signal i_we : std_logic := '0';
 
+-- Datapath signals
+signal readdata, writedata : std_logic_vector(7 downto 0);
+signal alu_z : std_logic;
 begin
 
 instr_mem : entity work.memory
@@ -48,6 +51,16 @@ decoder1 : entity work.decoder
            d_jumpf => d_jumpf,
            d_jumpb => d_jumpb
            );
-        
+
+datapath1 : entity work.datapath
+    Port map( clk => clk,
+           reset => reset,
+           d_alutoreg => d_alutoreg,
+           d_alua => d_alua,
+           d_alub => d_alub,
+           d_aluop => d_aluop,
+           readdata => readdata,
+           writedata => writedata,
+           alu_z => alu_z);        
 end Behavioral;
 

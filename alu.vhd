@@ -12,6 +12,7 @@ end alu;
 
 architecture Behavioral of alu is
 
+signal tmp : std_logic_vector(7 downto 0);
 begin
 
 process(a, b, op)
@@ -19,17 +20,18 @@ begin
 case op is
 
     when "00" =>
-        r <= std_logic_vector(unsigned(a)+unsigned(b));
+        tmp <= std_logic_vector(unsigned(a)+unsigned(b));
     when "01" =>
-        r <= std_logic_vector(unsigned(a)+unsigned(b));
+        tmp <= std_logic_vector(unsigned(a)+unsigned(b));
     when "10" =>
-        r <= a;      
-    when "11" =>
-        r <= b;   
+        tmp <= a;      
+    when others =>
+        tmp <= b;   
 end case;
 end process;
 
-z <= '1' when r = (others => '0') else '0';
+r <= tmp;
+z <= '1' when tmp = x"00" else '0';
 
 end Behavioral;
 
