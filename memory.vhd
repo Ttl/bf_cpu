@@ -21,20 +21,18 @@ type memtype is array(0 to 2**12-1) of std_logic_vector(7 downto 0);
 impure function init_mem(mif_file_name : in string) return memtype is
     file mif_file : text open read_mode is mif_file_name;
     variable mif_line : line;
-    variable temp_bv : bit_vector(13 downto 0);
+    variable temp_bv : bit_vector(7 downto 0);
     variable temp_mem : memtype;
     variable i : integer := 0;
 begin
-        while not endfile(mif_file) loop
+        for j in 0 to memtype'length-1 loop
             readline(mif_file, mif_line);
-            --if not endfile(mif_file) then
-            read(mif_line, temp_bv);
-            temp_mem(i) := to_stdlogicvector(temp_bv);
-            --end if;
-            i := i + 1;
-        end loop;
-        for j in i to memtype'length-1 loop
-            temp_mem(j) := (others => '0');
+            if not endfile(mif_file) then
+                read(mif_line, temp_bv);
+                temp_mem(i) := to_stdlogicvector(temp_bv);
+            else
+                temp_mem(j) := (others => '0');
+            end if;
         end loop;
     return temp_mem;
 end function;
