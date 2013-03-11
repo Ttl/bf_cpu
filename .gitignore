@@ -1,0 +1,6 @@
+*
+!/scripts
+!/testbenches
+!.gitignore
+!*.vhd
+!*.mif
