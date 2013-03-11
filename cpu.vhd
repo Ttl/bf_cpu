@@ -29,6 +29,14 @@ signal i_we : std_logic := '0';
 -- Datapath signals
 signal readdata, writedata : std_logic_vector(7 downto 0);
 signal alu_z : std_logic;
+
+-- UART signals
+signal uart_tx_req : std_logic;
+signal uart_tx_end : std_logic;
+signal uart_tx_data : std_logic_vector(7 downto 0);
+signal uart_rx_ready : std_logic;
+signal uart_rx_data : std_logic_vector(7 downto 0);
+
 begin
 
 instr_mem : entity work.memory
@@ -61,6 +69,25 @@ datapath1 : entity work.datapath
            d_aluop => d_aluop,
            readdata => readdata,
            writedata => writedata,
-           alu_z => alu_z);        
+           alu_z => alu_z);     
+
+uart1 : entity work.uart
+Generic map(
+	CLK_FREQ => 32,
+	SER_FREQ => 115200,
+	PARITY_BIT => false
+)
+Port map (
+	clk	=> clk,
+	rst	=> reset,
+	rx => rx,
+	tx => tx,
+	tx_req => uart_tx_req,
+	tx_end => uart_tx_end,
+	tx_data	=> uart_tx_data,
+	rx_ready => uart_rx_ready,
+	rx_data	=> uart_rx_data
+);
+           
 end Behavioral;
 
