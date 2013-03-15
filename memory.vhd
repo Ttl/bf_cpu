@@ -23,13 +23,13 @@ impure function init_mem(mif_file_name : in string) return memtype is
     variable mif_line : line;
     variable temp_bv : bit_vector(7 downto 0);
     variable temp_mem : memtype;
-    variable i : integer := 0;
+    variable j : integer := 0;
 begin
         for j in 0 to memtype'length-1 loop
-            readline(mif_file, mif_line);
             if not endfile(mif_file) then
+                readline(mif_file, mif_line);
                 read(mif_line, temp_bv);
-                temp_mem(i) := to_stdlogicvector(temp_bv);
+                temp_mem(j) := to_stdlogicvector(temp_bv);
             else
                 temp_mem(j) := (others => '0');
             end if;
@@ -47,9 +47,8 @@ if rising_edge(clk) then
     if we = '1' then
         mem(to_integer(unsigned(a1))) <= wd;
     end if;
+    d1 <= mem(to_integer(unsigned(a1)));
 end if;
-
-d1 <= mem(to_integer(unsigned(a1)));
 
 end process;
 end Behavioral;
