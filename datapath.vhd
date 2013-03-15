@@ -3,6 +3,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity datapath is
     Port ( clk, reset : in  STD_LOGIC;
+           c_skip : in STD_LOGIC;
            d_alutoreg : in  STD_LOGIC;
            d_alua : in STD_LOGIC_VECTOR(1 downto 0);
            d_alub : in STD_LOGIC_VECTOR(1 downto 0);
@@ -45,7 +46,7 @@ begin
 if reset = '1' then
     pointer <= (others => '0');
 elsif rising_edge(clk) then
-    if d_alutoreg = '1' then
+    if d_alutoreg = '1' and c_skip = '0' then
         pointer <= alu_result;
     else
         pointer <= pointer;
@@ -66,7 +67,7 @@ Port map( clk => clk,
        a1 => pointer,
        wd => alu_result,
        d1 => mem,
-       we => not d_alutoreg);
+       we => ((not d_alutoreg) and (not c_skip)));
        
 alu1 : entity work.alu
     Port map ( a => alua_out,

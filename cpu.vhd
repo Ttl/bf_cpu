@@ -37,6 +37,8 @@ signal uart_tx_data : std_logic_vector(7 downto 0);
 signal uart_rx_ready : std_logic;
 signal uart_rx_data : std_logic_vector(7 downto 0);
 
+-- Control signals
+signal c_skip : std_logic;
 begin
 
 instr_mem : entity work.memory
@@ -60,9 +62,20 @@ decoder1 : entity work.decoder
            d_jumpb => d_jumpb
            );
 
+control1 : entity work.control
+    Port map( clk => clk,
+           reset => reset,
+           d_jumpf => d_jumpf,
+           d_jumpb => d_jumpb,
+           c_skip => c_skip,
+           alu_z => alu_z,
+           pc_out => pc
+           );
+
 datapath1 : entity work.datapath
     Port map( clk => clk,
            reset => reset,
+           c_skip => c_skip,
            d_alutoreg => d_alutoreg,
            d_alua => d_alua,
            d_alub => d_alub,
