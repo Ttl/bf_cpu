@@ -4,7 +4,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 -- Stack used to store PC for jumps
 entity stack is
-    Port ( clk : in  STD_LOGIC;
+    Port ( clk, reset : in  STD_LOGIC;
            push, pop : in  STD_LOGIC;
            pcin : in  STD_LOGIC_VECTOR (12 downto 0);
            pcout : out  STD_LOGIC_VECTOR (12 downto 0));
