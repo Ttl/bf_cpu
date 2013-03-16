@@ -31,11 +31,8 @@ signal readdata, writedata : std_logic_vector(7 downto 0);
 signal alu_z : std_logic;
 
 -- UART signals
-signal uart_tx_req : std_logic;
-signal uart_tx_end : std_logic;
-signal uart_tx_data : std_logic_vector(7 downto 0);
+signal uart_tx_busy : std_logic;
 signal uart_rx_ready : std_logic;
-signal uart_rx_data : std_logic_vector(7 downto 0);
 
 -- Control signals
 signal c_skip : std_logic;
@@ -69,7 +66,8 @@ control1 : entity work.control
            d_jumpb => d_jumpb,
            c_skip => c_skip,
            alu_z => alu_z,
-           pc_out => pc
+           pc_out => pc,
+           uart_tx_busy => uart_tx_busy
            );
 
 datapath1 : entity work.datapath
@@ -80,14 +78,15 @@ datapath1 : entity work.datapath
            d_alua => d_alua,
            d_alub => d_alub,
            d_aluop => d_aluop,
+           d_write => d_write,
            readdata => readdata,
            writedata => writedata,
            alu_z => alu_z);     
 
 uart1 : entity work.uart
 Generic map(
-	CLK_FREQ => 32,
-	SER_FREQ => 115200,
+	CLK_FREQ => 100,
+	SER_FREQ => 20000000,
 	PARITY_BIT => false
 )
 Port map (
@@ -95,11 +94,11 @@ Port map (
 	rst	=> reset,
 	rx => rx,
 	tx => tx,
-	tx_req => uart_tx_req,
-	tx_end => uart_tx_end,
-	tx_data	=> uart_tx_data,
+	tx_req => d_write and not c_skip,
+	tx_busy => uart_tx_busy,
+	tx_data	=> writedata,
 	rx_ready => uart_rx_ready,
-	rx_data	=> uart_rx_data
+	rx_data	=> readdata
 );
            
 end Behavioral;

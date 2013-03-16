@@ -17,12 +17,12 @@ constant clk_period : time := 10 ns;
 BEGIN
 -- Component Instantiation
       uut: entity work.cpu
-      Generic map ( INSTRUCTIONS => "scripts/instructions.mif"
+      Generic map ( INSTRUCTIONS => "scripts/branch.mif"
       )
       Port map(clk => clk,
                reset => reset,
-               tx => tx,
-               rx => rx
+               tx => rx,
+               rx => tx
       );
 
    -- Clock process definitions
