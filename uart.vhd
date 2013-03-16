@@ -18,7 +18,7 @@ port (
 	tx				: out	std_logic;		-- RS232 transmitted serial data
 	-- uPC Interface
 	tx_req		: in	std_logic;						-- Request SEND of data
-	tx_end		: out	std_logic;						-- Data SENDED
+	tx_busy		: out	std_logic;						-- Data SENDED
 	tx_data		: in	std_logic_vector(7 downto 0);	-- Data to transmit
 	rx_ready	   : out	std_logic;						-- Received data ready to uPC read
 	rx_data		: out	std_logic_vector(7 downto 0)	-- Received data 
@@ -111,11 +111,12 @@ begin
 		end if;
 	end process;
 
+    tx_busy <= '0' when tx_fsm = idle else '1';
+
 	tx_proc:process(clk)
 		variable data_cnt	: std_logic_vector(2 downto 0);
 	begin
 		if clk'event and clk = '1' then
-			tx_end					<=	'0';
 			if tx_clk_en = '1' then
 				-- Default values
 				tx						<=	UART_IDLE;
@@ -156,7 +157,6 @@ begin
 						tx_fsm			<=	stop2;
 					when stop2 =>
 						-- Send Stop Bit
-						tx_end			<=	'1';
 						tx				<=	UART_IDLE;
 						tx_fsm			<=	idle;
 					-- Invalid States
