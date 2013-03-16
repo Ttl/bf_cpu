@@ -23,7 +23,7 @@ impure function init_mem(mif_file_name : in string) return memtype is
     variable mif_line : line;
     variable temp_bv : bit_vector(7 downto 0);
     variable temp_mem : memtype;
-    variable j : integer := 0;
+    variable i : integer := 0;
 begin
         for j in 0 to memtype'length-1 loop
             if not endfile(mif_file) then
