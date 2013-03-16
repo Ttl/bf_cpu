@@ -4,3 +4,4 @@
 !.gitignore
 !*.vhd
 !*.mif
+!*.py
