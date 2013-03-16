@@ -8,6 +8,7 @@ entity datapath is
            d_alua : in STD_LOGIC_VECTOR(1 downto 0);
            d_alub : in STD_LOGIC_VECTOR(1 downto 0);
            d_aluop : in STD_LOGIC_VECTOR(1 downto 0);
+           d_write : in STD_LOGIC;
            readdata : in STD_LOGIC_VECTOR(7 downto 0);
            writedata : out STD_LOGIC_VECTOR(7 downto 0);
            alu_z : out STD_LOGIC);
@@ -61,13 +62,16 @@ alua_out <= mem when d_alua = "00" else
 alub_out <= x"00" when d_alub = "00" else
             x"01" when d_alub = "01" else
             x"FF";
-            
+
+writedata <= mem;
+
 regs : entity work.reg_file
 Port map( clk => clk,
        a1 => pointer,
        wd => alu_result,
        d1 => mem,
-       we => ((not d_alutoreg) and (not c_skip)));
+       we => (not d_alutoreg and not c_skip)
+       );
        
 alu1 : entity work.alu
     Port map ( a => alua_out,
