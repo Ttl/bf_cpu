@@ -41,6 +41,7 @@ if reset = '1' then
     mode <= M_RUN;
     sync_reset <= '1';
     match_brackets := to_signed(0,8);
+    c_skip <= '1';
 elsif rising_edge(clk) then
     sync_reset <= '0';
     c_skip <= '1';
