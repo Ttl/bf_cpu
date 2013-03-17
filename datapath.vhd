@@ -63,8 +63,6 @@ alub_out <= x"00" when d_alub = "00" else
             x"01" when d_alub = "01" else
             x"FF";
 
-writedata <= mem;
-
 regs : entity work.reg_file
 Port map( clk => clk,
        a1 => pointer,
