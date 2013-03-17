@@ -24,6 +24,8 @@ signal pointer : std_logic_vector(7 downto 0) := (others => '0');
 -- Register output from address pointed by pointer
 signal mem : std_logic_vector(7 downto 0);
 
+signal reg_write : std_logic;
+
 begin
 
 -- d_alua
@@ -63,12 +65,14 @@ alub_out <= x"00" when d_alub = "00" else
             x"01" when d_alub = "01" else
             x"FF";
 
+reg_write <= (not d_alutoreg and not c_skip);
+
 regs : entity work.reg_file
 Port map( clk => clk,
        a1 => pointer,
        wd => alu_result,
        d1 => mem,
-       we => (not d_alutoreg and not c_skip)
+       we => reg_write
        );
        
 alu1 : entity work.alu
