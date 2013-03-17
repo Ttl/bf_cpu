@@ -16,7 +16,7 @@ end memory;
 
 architecture Behavioral of memory is
 
-type memtype is array(0 to 2**12-1) of std_logic_vector(7 downto 0);
+type memtype is array(0 to 2**13-1) of std_logic_vector(7 downto 0);
 
 impure function init_mem(mif_file_name : in string) return memtype is
     file mif_file : text open read_mode is mif_file_name;
