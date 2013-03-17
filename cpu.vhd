@@ -17,7 +17,7 @@ signal instr : std_logic_vector(7 downto 0);
 -- Decoder signals
 signal d_alutoreg : std_logic;
 signal d_alua, d_alub, d_aluop : std_logic_vector(1 downto 0);
-signal d_write : std_logic;
+signal d_write, d_read : std_logic;
 signal d_jumpf, d_jumpb : std_logic;
 
 signal pc : std_logic_vector(12 downto 0);
@@ -60,6 +60,7 @@ decoder1 : entity work.decoder
            d_alua => d_alua,
            d_alub => d_alub,
            d_write => d_write,
+           d_read => d_read,
            d_aluop => d_aluop,
            d_jumpf => d_jumpf,
            d_jumpb => d_jumpb
@@ -71,10 +72,12 @@ control1 : entity work.control
            d_jumpf => d_jumpf,
            d_jumpb => d_jumpb,
            d_write => d_write,
+           d_read => d_read,
            c_skip => c_skip,
            alu_z => alu_z,
            pc_out => pc,
-           uart_tx_end => uart_tx_end
+           uart_tx_end => uart_tx_end,
+           uart_rx_ready => uart_rx_ready
            );
 
 process(clk)
@@ -110,10 +113,11 @@ begin
 end process;
 
 uart_tx_req <= d_write and not c_skip;
+
 uart1 : entity work.uart
 Generic map(
 	CLK_FREQ => 100,
-	SER_FREQ => 1000000,
+	SER_FREQ => 2000000,
 	PARITY_BIT => false
 )
 Port map (

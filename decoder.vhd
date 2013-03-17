@@ -16,6 +16,7 @@ entity decoder is
            d_alua : out STD_LOGIC_VECTOR(1 downto 0);
            d_alub : out STD_LOGIC_VECTOR(1 downto 0);
            d_write : out STD_LOGIC;
+           d_read : out STD_LOGIC;
            d_aluop : out STD_LOGIC_VECTOR(1 downto 0);
            d_jumpf : out STD_LOGIC;
            d_jumpb : out STD_LOGIC
@@ -60,6 +61,7 @@ d_alutoreg <= '0';
 d_alub <= "00";
 d_alua <= "00";
 d_write <= '0';
+d_read <= '0';
 d_aluop <= "00";
 d_jumpf <= '0';
 d_jumpb <= '0';
@@ -92,6 +94,7 @@ case instr is
     
     -- ,
     when x"2C" =>
+        d_read <= '1';
         d_alua <= "11";
         
     -- [
