@@ -6,100 +6,116 @@ entity control is
     Port ( clk, reset : in  STD_LOGIC;
            d_jumpf : in  STD_LOGIC;
            d_jumpb : in STD_LOGIC;
+           d_write : in STD_LOGIC;
            c_skip : out STD_LOGIC;
            alu_z : in STD_LOGIC;
            pc_out : out  STD_LOGIC_VECTOR (12 downto 0);
-           uart_tx_busy : in STD_LOGIC);
+           uart_tx_end : in STD_LOGIC);
 end control;
 
 architecture Behavioral of control is
 
 -- It takes two cycles to reverse the direction
-type modetype is (M_RUN, M_JUMPB1, M_JUMPB2, M_JUMPF1, M_JUMPF2);
-signal mode : modetype;
+type modetype is (M_RUN, M_JUMPF1, M_JUMPF2, M_JUMPB1, M_TXWAIT);
+signal mode, mode_next : modetype;
 
 signal pc : std_logic_vector(12 downto 0) := (others => '0');
-signal pc_next : std_logic_vector(12 downto 0);
+signal pc_next, pc_cache, pc_cache_next : std_logic_vector(12 downto 0);
 
-signal sync_reset : std_logic;
+signal sync_reset : std_logic := '1';
+-- PC stack signals
+signal stack_push, stack_pop : std_logic;
+signal stack_pc : std_logic_vector(12 downto 0);
 
---pragma synthesis_off
-signal mode_debug : modetype;
-signal match_bracket_debug : signed(7 downto 0);
---pragma synthesis_on
 begin
 
--- Assing outgoing PC
-pc_out <= pc;
+-- Stack for storing the program counter for faster return from branches
+pcstack : entity work.stack
+    Port map( clk => clk,
+              reset => reset,
+              push => stack_push,
+              pop => stack_pop,
+              pcin => pc,
+              pcout => stack_pc
+              );
 
--- Mode control
-process(clk, reset, d_jumpf, d_jumpb)
--- Variable for counting brackets, add on jumpf, sub on jumpb
-variable match_brackets : signed(7 downto 0) := to_signed(0,8);
+pc_out <= pc_next;
+
+
+process(clk, mode_next, pc_next, pc_cache_next)
 begin
-if reset = '1' then
-    mode <= M_RUN;
-    sync_reset <= '1';
-    match_brackets := to_signed(0,8);
-    c_skip <= '1';
-elsif rising_edge(clk) then
-    sync_reset <= '0';
-    c_skip <= '1';
-    -- If UART is busy we need to wait until it's available again
-    if uart_tx_busy = '1' then
-        pc <= pc;
-    else
-        if mode = M_JUMPF1 then
-            pc <= std_logic_vector(unsigned(pc)+1);
-            mode <= M_JUMPF2;
-        elsif mode = M_JUMPB1 then
-            pc <= std_logic_vector(unsigned(pc)-1);
-            mode <= M_JUMPB2;
-        elsif mode = M_RUN then
-            c_skip <= '0';
-            pc <= std_logic_vector(unsigned(pc)+1);
-            match_brackets := to_signed(0,8);
-            if d_jumpf = '1' and alu_z = '1' then
-                mode <= M_JUMPF1;
-                c_skip <= '1';
-            end if;    
-            if d_jumpb = '1' and alu_z = '0' then
-                pc <= std_logic_vector(unsigned(pc)-2);
-                mode <= M_JUMPB1;
-                c_skip <= '1';
-            end if;
-        elsif mode = M_JUMPF2 then
-            pc <= std_logic_vector(unsigned(pc)+1);
-            if d_jumpb = '1' then
-                if match_brackets = to_signed(0,8) then
-                    mode <= M_RUN;
-                else
-                    match_brackets := match_brackets - 1;
-                end if;
-            end if;
-            if d_jumpf = '1' then
-                match_brackets := match_brackets + 1;
-            end if;
-        elsif mode = M_JUMPB2 then
-            pc <= std_logic_vector(unsigned(pc)-1);
-            if d_jumpf = '1' then
-                if match_brackets = to_signed(0,8) then
-                    pc <= std_logic_vector(unsigned(pc)+1);
-                    mode <= M_RUN;
-                else
-                    match_brackets := match_brackets + 1;
-                end if;
-            end if;
-            if d_jumpb = '1' then
-                match_brackets := match_brackets - 1;
-            end if;
-        end if;
+    if rising_edge(clk) then
+        mode <= mode_next;
+        pc <= pc_next;
+        sync_reset <= reset;
+        pc_cache <= pc_cache_next;
     end if;
-    
---pragma synthesis_off
-mode_debug <= mode;
-match_bracket_debug <= match_brackets;
---pragma synthesis_on
+end process;
+
+process(mode, pc, d_jumpf, d_jumpb, d_write, stack_pc, sync_reset, alu_z, pc_cache, uart_tx_end)
+begin
+if sync_reset = '1' then
+    mode_next <= M_RUN;
+    c_skip <= '1';
+    pc_next <= (others => '0');
+    stack_push <= '0';
+    stack_pop <= '0';
+    pc_cache_next <= (others => '-');
+else
+    stack_push <= '0';
+    stack_pop <= '0';
+    c_skip <= '0';
+    pc_next <= std_logic_vector(unsigned(pc)+1);
+    -- Save next PC so we can get back where we were
+    -- if jump was predicted incorrectly
+    pc_cache_next <= pc_cache;
+    mode_next <= M_RUN;
+    case mode is
+        
+        when M_JUMPF1 =>
+            mode_next <= M_JUMPF2;
+            
+        when M_JUMPF2 =>
+            if d_jumpb = '1' then
+                mode_next <= M_RUN;
+            end if;
+            
+        when M_JUMPB1 =>
+            mode_next <= M_RUN;
+            if alu_z = '1' then
+                stack_pop <= '1';
+                c_skip <= '1';
+                pc_next <= std_logic_vector(unsigned(pc_cache)+1);
+            end if;
+            
+        when M_RUN =>
+            if d_jumpf = '1' then
+                -- Jump forward
+                if alu_z = '1' then
+                    mode_next <= M_JUMPF1;
+                    c_skip <= '1';
+                else
+                    stack_push <= '1';
+                end if;
+            elsif d_jumpb = '1' then
+                pc_cache_next <= pc;
+                pc_next <= stack_pc;
+                c_skip <= '1';
+                -- We need to check the alu_z on next cycle
+                mode_next <= M_JUMPB1;
+            elsif d_write = '1' then
+                mode_next <= M_TXWAIT;
+            end if;
+            
+        when M_TXWAIT =>
+            pc_next <= pc;
+            c_skip <= '1';
+            mode_next <= M_TXWAIT;
+            if uart_tx_end = '1' then
+                mode_next <= M_RUN;
+            end if;
+
+    end case;
 end if;
 
 
