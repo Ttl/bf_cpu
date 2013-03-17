@@ -12,12 +12,12 @@ end stack;
 
 architecture Behavioral of stack is
 
-type stacktype is array(0 to 2**6) of std_logic_vector(12 downto 0);
+type stacktype is array(0 to 2**6-1) of std_logic_vector(12 downto 0);
 signal mem : stacktype;
 
 begin
 
-process(clk, reset, push, pop, pcin)
+process(clk, reset, push, pop, pcin, mem)
 variable pointer : unsigned(5 downto 0);
 begin
 
