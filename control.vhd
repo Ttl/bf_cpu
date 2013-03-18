@@ -119,6 +119,7 @@ case mode is
     
     when M_JUMPF1 =>
         if d_jumpf = '1' then
+            stack_push <= '1';
             brackets_next <= brackets + 1;
         end if;
         if alu_z = '1' then
@@ -161,7 +162,8 @@ case mode is
         if alu_z = '1' then
             stack_pop <= '1';
             c_skip <= '1';
-            pc_next <= std_logic_vector(unsigned(pc_cache)+1);
+            skip_next <= '1';
+            pc_next <= std_logic_vector(unsigned(pc_cache));
         end if;
         
     when M_RUN =>
