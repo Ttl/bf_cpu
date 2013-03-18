@@ -29,6 +29,11 @@ signal brackets, brackets_next : unsigned(7 downto 0);
 signal stack_push, stack_pop : std_logic;
 signal stack_pc : std_logic_vector(12 downto 0);
 
+-- Jumpf cache signals
+signal cache_push, cache_push_next, cache_valid : std_logic;
+signal cache_out : std_logic_vector(12 downto 0);
+signal cache_ready, cache_ready_next : std_logic;
+
 begin
 
 -- Stack for storing the program counter for faster return from branches
@@ -40,6 +45,19 @@ pcstack : entity work.stack
               pcin => pc,
               pcout => stack_pc
               );
+
+jumpf_cache: entity work.cache
+    Generic map(WIDTH => 13, -- Length of address
+             DWIDTH => 13, -- Length of one entry
+             CACHE_SIZE => 4) -- Log2 of number of entries in the cache
+    Port map( clk => clk,
+           reset => reset,
+           addr => pc_cache,
+           din => pc_next,
+           push => cache_push_next,
+           valid => cache_valid,
+           dout => cache_out
+           );
 
 pc_out <= pc_next;
 
@@ -55,6 +73,9 @@ begin
         pc <= pc_next;
         pc_cache <= pc_cache_next;
         brackets <= brackets_next;
+        -- Cache push is delayed one clock cycle
+        cache_push <= cache_push_next;
+        cache_ready <= cache_ready_next;
     end if;
 end process;
 
@@ -64,6 +85,8 @@ begin
 
 stack_push <= '0';
 stack_pop <= '0';
+cache_push_next <= '0';
+cache_ready_next <= '0';
 c_skip <= '0';
 brackets_next <= brackets;
 pc_next <= std_logic_vector(unsigned(pc)+1);
@@ -104,8 +127,11 @@ case mode is
             end if;
             mode_next <= M_RUN;
         end if;
+
         
     when M_JUMPF2 =>
+        -- Readying cache takes two clock cycles
+        cache_ready_next <= '1';
         mode_next <= M_JUMPF2;
         c_skip <= '1';
         if d_jumpf = '1' then
@@ -113,8 +139,14 @@ case mode is
         elsif d_jumpb = '1' then
             brackets_next <= brackets - 1;
             if brackets = 0 then
+                -- Store jump end address to speed up future jumps
+                cache_push_next <= '1';
                 mode_next <= M_RUN;
             end if;
+        end if;
+        if cache_valid = '1' and cache_ready = '1' then
+            mode_next <= M_RUN;
+            pc_next <= cache_out;
         end if;
         
     when M_JUMPB1 =>
@@ -129,6 +161,7 @@ case mode is
         brackets_next <= to_unsigned(0,8);
         if d_jumpf = '1' then
             -- Jump forward
+            pc_cache_next <= pc;
             mode_next <= M_JUMPF1;
             stack_push <= '1';
         elsif d_jumpb = '1' then
