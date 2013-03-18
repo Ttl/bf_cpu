@@ -53,8 +53,8 @@ jumpf_cache: entity work.cache
     Port map( clk => clk,
            reset => reset,
            addr => pc_cache,
-           din => pc_next,
-           push => cache_push_next,
+           din => pc,
+           push => cache_push,
            valid => cache_valid,
            dout => cache_out
            );
@@ -80,7 +80,8 @@ begin
 end process;
 
 process(mode, pc, d_jumpf, d_jumpb, d_write, d_read, 
-    stack_pc, alu_z, pc_cache, uart_tx_end, uart_rx_ready, brackets)
+    stack_pc, alu_z, pc_cache, uart_tx_end, uart_rx_ready,
+    brackets, cache_valid, cache_ready, cache_out)
 begin
 
 stack_push <= '0';
