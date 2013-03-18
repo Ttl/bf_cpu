@@ -1,6 +1,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
+use work.bfconfig.all;
 use std.textio.all;
 
 entity memory is
@@ -8,7 +9,7 @@ entity memory is
         CONTENTS : string := "scripts/instructions.mif"
         );
     Port ( clk : in  STD_LOGIC;
-           a1 : in  STD_LOGIC_VECTOR (12 downto 0);
+           a1 : in  pctype;
            wd : in  STD_LOGIC_VECTOR (7 downto 0);
            d1 : out  STD_LOGIC_VECTOR (7 downto 0);
            we : in  STD_LOGIC);
@@ -16,7 +17,7 @@ end memory;
 
 architecture Behavioral of memory is
 
-type memtype is array(0 to 2**13-1) of std_logic_vector(7 downto 0);
+type memtype is array(0 to 2**INST_MEM_SIZE-1) of std_logic_vector(7 downto 0);
 
 impure function init_mem(mif_file_name : in string) return memtype is
     file mif_file : text open read_mode is mif_file_name;

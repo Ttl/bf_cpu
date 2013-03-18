@@ -1,5 +1,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use work.bfconfig.all;
 --use IEEE.NUMERIC_STD.ALL;
 
 entity cpu is
@@ -20,7 +21,7 @@ signal d_alua, d_alub, d_aluop : std_logic_vector(1 downto 0);
 signal d_write, d_read : std_logic;
 signal d_jumpf, d_jumpb : std_logic;
 
-signal pc : std_logic_vector(12 downto 0);
+signal pc : pctype;
 
 -- RAM signals
 signal i_wd : std_logic_vector(7 downto 0) := (others => '0');
