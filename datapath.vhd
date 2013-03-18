@@ -8,7 +8,6 @@ entity datapath is
            d_alua : in STD_LOGIC_VECTOR(1 downto 0);
            d_alub : in STD_LOGIC_VECTOR(1 downto 0);
            d_aluop : in STD_LOGIC_VECTOR(1 downto 0);
-           d_write : in STD_LOGIC;
            readdata : in STD_LOGIC_VECTOR(7 downto 0);
            writedata : out STD_LOGIC_VECTOR(7 downto 0);
            alu_z : out STD_LOGIC);

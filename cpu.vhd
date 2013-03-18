@@ -40,8 +40,13 @@ signal uart_tx_data_delay : std_logic_vector(7 downto 0);
 signal c_skip : std_logic;
 
 -- Execute state signals
-signal e_alutoreg, e_write, e_skip : std_logic;
+signal e_alutoreg, e_skip : std_logic;
 signal e_alua, e_alub, e_aluop : std_logic_vector(1 downto 0);
+
+--pragma synthesis_off
+-- Currently executing instruction
+signal instr_ex : std_logic_vector(7 downto 0);
+--pragma synthesis_on
 begin
 
 instr_mem : entity work.memory
@@ -87,8 +92,10 @@ if rising_edge(clk) then
     e_alua <= d_alua;
     e_alub <= d_alub;
     e_aluop <= d_aluop;
-    e_write <= d_write;
     e_skip <= c_skip;
+    --pragma synthesis_off
+    instr_ex <= instr;
+    --pragma synthesis_on
 end if;
 end process;
 
@@ -100,7 +107,6 @@ datapath1 : entity work.datapath
            d_alua => e_alua,
            d_alub => e_alub,
            d_aluop => e_aluop,
-           d_write => e_write,
            readdata => readdata,
            writedata => writedata,
            alu_z => alu_z);     
