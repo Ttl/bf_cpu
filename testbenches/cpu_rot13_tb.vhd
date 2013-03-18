@@ -90,8 +90,9 @@ BEGIN
     uart_tx_req <= '0';
     wait until uart_tx_end = '1';
     wait for 1999us;
-    assert false report "Completed succesfully" severity failure;
-
+    assert uart_rx_data /= x"4E" report "Completed succesfully" severity failure;
+    assert false report "Invalid rx_data" severity failure;
+    
     wait; -- will wait forever
  END PROCESS tb;
 --  End Test Bench 
