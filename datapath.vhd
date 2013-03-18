@@ -28,7 +28,7 @@ signal mem : std_logic_vector(7 downto 0);
 
 signal reg_write : std_logic;
 
-signal zeros : std_logic_vector(REG_SIZE-1 downto 8) := (others => '0');
+constant zeros : std_logic_vector(REG_SIZE-1 downto 8) := (others => '0');
 
 begin
 

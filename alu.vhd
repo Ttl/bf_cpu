@@ -14,25 +14,23 @@ end alu;
 architecture Behavioral of alu is
 
 signal tmp : pointertype;
-signal zeros : std_logic_vector(REG_SIZE-1 downto 8) := (others => '0');
 signal sign_ext : std_logic_vector(REG_SIZE-1 downto 8);
 begin
 
 process(a, b, op)
 variable sign_ext : std_logic_vector(REG_SIZE-1 downto 8);
 begin
+sign_ext := (others => b(7));
 case op is
 
     when "00" =>
-        sign_ext := (others => b(7));
         tmp <= std_logic_vector(unsigned(a)+unsigned(sign_ext&b));
     when "01" =>
-        sign_ext := (others => b(7));
         tmp <= std_logic_vector(unsigned(a)+unsigned(sign_ext&b));
     when "10" =>
         tmp <= a;      
     when others =>
-        tmp <= zeros&b;   
+        tmp <= sign_ext&b;   
 end case;
 end process;
 
