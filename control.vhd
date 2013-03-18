@@ -90,11 +90,11 @@ case mode is
         end if;
     
     when M_JUMPF1 =>
-        c_skip <= '1';
         if d_jumpf = '1' then
             brackets_next <= brackets + 1;
         end if;
         if alu_z = '1' then
+            c_skip <= '1';
             stack_pop <= '1';
             mode_next <= M_JUMPF2;
         else
@@ -134,7 +134,7 @@ case mode is
         elsif d_jumpb = '1' then
             pc_cache_next <= pc;
             pc_next <= stack_pc;
-            c_skip <= '1';
+            --c_skip <= '1';
             -- We need to check alu_z on the next cycle
             mode_next <= M_JUMPB1;
         elsif d_write = '1' then
@@ -156,6 +156,7 @@ case mode is
         pc_next <= pc;
         mode_next <= M_RXWAIT;
         if uart_rx_ready = '1' then
+            pc_next <= std_logic_vector(unsigned(pc)+1);
             mode_next <= M_RUN;
         end if;
         
