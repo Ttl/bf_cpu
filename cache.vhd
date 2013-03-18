@@ -25,7 +25,7 @@ type cache_entry is
   
 type cache_type is array(0 to 2**CACHE_SIZE-1) of cache_entry;
 
-signal cache_mem : cache_type := (others => (valid => '0', others => (others => '-')));
+signal cache_mem : cache_type := (others => (valid => '0', data => (others => '-'), tag => (others => '-')));
 begin
 
 process(clk, reset, addr, din, push, cache_mem)
