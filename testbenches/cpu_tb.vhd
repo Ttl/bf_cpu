@@ -20,7 +20,7 @@ signal uart_tx_data, uart_rx_data : std_logic_vector(7 downto 0);
 BEGIN
 -- Component Instantiation
       uut: entity work.cpu
-      Generic map ( INSTRUCTIONS => "scripts/branch.mif"
+      Generic map ( INSTRUCTIONS => "scripts/mandelbrot.mif"
       )
       Port map(clk => clk,
                reset => reset,
@@ -31,7 +31,7 @@ BEGIN
     uart1 : entity work.uart
     Generic map(
         CLK_FREQ => 100,
-        SER_FREQ => 8000000,
+        SER_FREQ => 2000000,
         PARITY_BIT => false
     )
     Port map (
@@ -57,6 +57,7 @@ BEGIN
             report "Received Dec: "&integer'image(to_integer(unsigned(uart_rx_data)));
         end if;
     end process;
+    
    -- Clock process definitions
    clk_process :process
    begin
@@ -73,17 +74,14 @@ BEGIN
     uart_tx_req <= '0';
     wait for 100 ns; -- wait until global set/reset completes
     reset <= '0';
+
+-- Send character
     uart_tx_req <= '1';
-    uart_tx_data <= x"50"; -- P
+    uart_tx_data <= x"41"; -- A
     wait for clk_period;
     uart_tx_req <= '0';
     wait until uart_tx_end = '1';
-    wait for clk_period;
-    uart_tx_req <= '1';
-    uart_tx_data <= x"00";
-    wait for clk_period;
-    uart_tx_req <= '0';
-
+    
     wait; -- will wait forever
  END PROCESS tb;
 --  End Test Bench 

@@ -124,7 +124,7 @@ uart_tx_req <= d_write and not c_skip;
 uart1 : entity work.uart
 Generic map(
 	CLK_FREQ => 100,
-	SER_FREQ => 8000000,
+	SER_FREQ => 2000000,
 	PARITY_BIT => false
 )
 Port map (

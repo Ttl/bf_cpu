@@ -1,12 +1,14 @@
+-- TestBench Template 
+
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 USE std.textio.all;
 
-ENTITY cpu_rot13_tb IS
-END cpu_rot13_tb;
+ENTITY cpu_tb IS
+END cpu_tb;
 
-ARCHITECTURE behavior OF cpu_rot13_tb IS 
+ARCHITECTURE behavior OF cpu_tb IS 
 
 signal clk, reset, tx, rx : std_logic;
 
@@ -18,7 +20,7 @@ signal uart_tx_data, uart_rx_data : std_logic_vector(7 downto 0);
 BEGIN
 -- Component Instantiation
       uut: entity work.cpu
-      Generic map ( INSTRUCTIONS => "scripts/rot13.mif"
+      Generic map ( INSTRUCTIONS => "scripts/mandelbrot.mif"
       )
       Port map(clk => clk,
                reset => reset,
@@ -29,7 +31,7 @@ BEGIN
     uart1 : entity work.uart
     Generic map(
         CLK_FREQ => 100,
-        SER_FREQ => 2000000,
+        SER_FREQ => 8000000,
         PARITY_BIT => false
     )
     Port map (
@@ -56,16 +58,6 @@ BEGIN
         end if;
     end process;
     
-    -- Test received bytes
-    test_process : process
-    begin
-        wait until uart_rx_ready = '1';
-        wait for clk_period;
-        assert uart_rx_data = x"4E" report "First msg incorrect" severity failure;
-        wait until uart_rx_ready = '1';
-        assert false report "Received too many messages" severity failure;
-    end process;
-    
    -- Clock process definitions
    clk_process :process
    begin
@@ -89,9 +81,6 @@ BEGIN
     wait for clk_period;
     uart_tx_req <= '0';
     wait until uart_tx_end = '1';
-    wait for 1999us;
-    assert uart_rx_data /= x"4E" report "Completed succesfully" severity failure;
-    assert false report "Invalid rx_data" severity failure;
     
     wait; -- will wait forever
  END PROCESS tb;
