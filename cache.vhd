@@ -5,7 +5,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity cache is
     Generic (WIDTH : natural := 13; -- Length of address
              DWIDTH : natural := 13; -- Length of one entry
-             ADR_LENGTH : natural := 4); -- Log2 of number of entries in the cache
+             CACHE_SIZE : natural := 4); -- Log2 of number of entries in the cache
     Port ( clk, reset : in  STD_LOGIC;
            addr : in  STD_LOGIC_VECTOR (WIDTH-1 downto 0);
            din : in  STD_LOGIC_VECTOR (WIDTH-1 downto 0);
@@ -18,12 +18,12 @@ architecture Behavioral of cache is
 
 type cache_entry is
   record
-     tag : std_logic_vector(WIDTH-1 downto ADR_LENGTH);
+     tag : std_logic_vector(WIDTH-1 downto CACHE_SIZE);
      data : std_logic_vector(DWIDTH-1 downto 0);
      valid : std_logic;
   end record;
   
-type cache_type is array(0 to 8) of cache_entry;
+type cache_type is array(0 to 2**CACHE_SIZE-1) of cache_entry;
 
 signal cache_mem : cache_type := (others => (valid => '0', others => (others => '-')));
 begin
@@ -33,22 +33,22 @@ begin
 
 if rising_edge(clk) then
     if reset = '1' then
-        for I in 0 to ADR_LENGTH-1 loop
-            cache_mem(to_integer(unsigned(addr(ADR_LENGTH-1 downto 0)))).valid <= '0';
+        for I in 0 to 2**CACHE_SIZE-1 loop
+            cache_mem(to_integer(to_unsigned(I, CACHE_SIZE))).valid <= '0';
         end loop;
     end if;
     
     -- Write to current location
     if push = '1' then
-        cache_mem(to_integer(unsigned(addr(ADR_LENGTH-1 downto 0)))).tag <= addr(WIDTH-1 downto ADR_LENGTH);
-        cache_mem(to_integer(unsigned(addr(ADR_LENGTH-1 downto 0)))).data <= din;
-        cache_mem(to_integer(unsigned(addr(ADR_LENGTH-1 downto 0)))).valid <= '1';
+        cache_mem(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag <= addr(WIDTH-1 downto CACHE_SIZE);
+        cache_mem(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data <= din;
+        cache_mem(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid <= '1';
     end if;
     
     -- Set output if tag matches and entry is valid
-    if cache_mem(to_integer(unsigned(addr(ADR_LENGTH-1 downto 0)))).valid = '1' and cache_mem(to_integer(unsigned(addr(ADR_LENGTH-1 downto 0)))).tag = addr(WIDTH-1 downto ADR_LENGTH) then
+    if cache_mem(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid = '1' and cache_mem(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag = addr(WIDTH-1 downto CACHE_SIZE) then
         valid <= '1';
-        dout <= cache_mem(to_integer(unsigned(addr(ADR_LENGTH-1 downto 0)))).data;
+        dout <= cache_mem(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data;
     else
         valid <= '0';
         dout <= (others => '-');
