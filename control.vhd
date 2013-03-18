@@ -23,6 +23,7 @@ signal mode, mode_next : modetype := M_RESET;
 
 signal pc : std_logic_vector(12 downto 0) := (others => '0');
 signal pc_next, pc_cache, pc_cache_next : std_logic_vector(12 downto 0);
+signal brackets, brackets_next : unsigned(7 downto 0);
 
 -- PC stack signals
 signal stack_push, stack_pop : std_logic;
@@ -53,15 +54,18 @@ begin
         end if;
         pc <= pc_next;
         pc_cache <= pc_cache_next;
+        brackets <= brackets_next;
     end if;
 end process;
 
-process(mode, pc, d_jumpf, d_jumpb, d_write, d_read, stack_pc, alu_z, pc_cache, uart_tx_end, uart_rx_ready)
+process(mode, pc, d_jumpf, d_jumpb, d_write, d_read, 
+    stack_pc, alu_z, pc_cache, uart_tx_end, uart_rx_ready, brackets)
 begin
 
 stack_push <= '0';
 stack_pop <= '0';
 c_skip <= '0';
+brackets_next <= brackets;
 pc_next <= std_logic_vector(unsigned(pc)+1);
 -- Save next PC so we can get back where we were
 -- if jump was predicted incorrectly
@@ -70,6 +74,7 @@ mode_next <= M_RUN;
 case mode is
     
     when M_RESET =>
+        brackets_next <= to_unsigned(0,8);
         c_skip <= '1';
         pc_next <= (others => '0');
         stack_push <= '0';
@@ -85,11 +90,31 @@ case mode is
         end if;
     
     when M_JUMPF1 =>
-        mode_next <= M_JUMPF2;
+        c_skip <= '1';
+        if d_jumpf = '1' then
+            brackets_next <= brackets + 1;
+        end if;
+        if alu_z = '1' then
+            stack_pop <= '1';
+            mode_next <= M_JUMPF2;
+        else
+             -- Infinite loop, but do what we are told to do
+            if d_jumpb = '1' then
+                pc_next <= pc_cache;
+            end if;
+            mode_next <= M_RUN;
+        end if;
         
     when M_JUMPF2 =>
-        if d_jumpb = '1' then
-            mode_next <= M_RUN;
+        mode_next <= M_JUMPF2;
+        c_skip <= '1';
+        if d_jumpf = '1' then
+            brackets_next <= brackets + 1;
+        elsif d_jumpb = '1' then
+            brackets_next <= brackets - 1;
+            if brackets = 0 then
+                mode_next <= M_RUN;
+            end if;
         end if;
         
     when M_JUMPB1 =>
@@ -101,22 +126,22 @@ case mode is
         end if;
         
     when M_RUN =>
+        brackets_next <= to_unsigned(0,8);
         if d_jumpf = '1' then
             -- Jump forward
-            if alu_z = '1' then
-                mode_next <= M_JUMPF1;
-                c_skip <= '1';
-            else
-                stack_push <= '1';
-            end if;
+            mode_next <= M_JUMPF1;
+            stack_push <= '1';
         elsif d_jumpb = '1' then
             pc_cache_next <= pc;
             pc_next <= stack_pc;
             c_skip <= '1';
-            -- We need to check the alu_z on next cycle
+            -- We need to check alu_z on the next cycle
             mode_next <= M_JUMPB1;
         elsif d_write = '1' then
             mode_next <= M_TXWAIT;
+        elsif d_read = '1' then
+            pc_next <= pc;
+            mode_next <= M_RXWAIT;
         end if;
         
     when M_TXWAIT =>
@@ -129,7 +154,6 @@ case mode is
     
     when M_RXWAIT =>
         pc_next <= pc;
-        c_skip <= '1';
         mode_next <= M_RXWAIT;
         if uart_rx_ready = '1' then
             mode_next <= M_RUN;
