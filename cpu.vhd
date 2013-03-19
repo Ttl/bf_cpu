@@ -1,7 +1,9 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use work.bfconfig.all;
---use IEEE.NUMERIC_STD.ALL;
+--pragma synthesis_off
+use IEEE.NUMERIC_STD.ALL;
+--pragma synthesis_on
 
 entity cpu is
     Generic ( INSTRUCTIONS : string := "scripts/instructions.mif"
@@ -35,7 +37,6 @@ signal alu_z : std_logic;
 signal uart_tx_req : std_logic;
 signal uart_tx_end : std_logic;
 signal uart_rx_ready : std_logic;
-signal uart_tx_data_delay : std_logic_vector(7 downto 0);
 
 -- Control signals
 signal c_skip : std_logic;
@@ -112,19 +113,29 @@ datapath1 : entity work.datapath
            writedata => writedata,
            alu_z => alu_z);     
 
-process(clk)
-begin
-    if rising_edge(clk) then
-        uart_tx_data_delay <= writedata;
-    end if;
-end process;
-
 uart_tx_req <= d_write and not c_skip;
+
+--pragma synthesis_off
+-- Print sent data
+process
+begin
+wait until uart_tx_req = '1';
+wait until rising_edge(clk);
+wait until rising_edge(clk);
+if to_integer(unsigned(writedata)) > 31 and to_integer(unsigned(writedata)) < 127 then
+    report "Sent ASCII: "&character'image(character'val(to_integer(unsigned(writedata))));
+else
+    report "Sent Dec: "&integer'image(to_integer(unsigned(writedata)));
+end if;
+wait until uart_tx_end = '1';
+
+end process;
+--pragma synthesis_on
 
 uart1 : entity work.uart
 Generic map(
 	CLK_FREQ => 100,
-	SER_FREQ => 2000000,
+	SER_FREQ => 1000000,
 	PARITY_BIT => false
 )
 Port map (
@@ -134,7 +145,7 @@ Port map (
 	tx => tx,
 	tx_req => uart_tx_req,
 	tx_end => uart_tx_end,
-	tx_data	=> uart_tx_data_delay,
+	tx_data	=> writedata,
 	rx_ready => uart_rx_ready,
 	rx_data	=> readdata
 );

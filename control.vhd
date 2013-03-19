@@ -19,7 +19,7 @@ end control;
 architecture Behavioral of control is
 
 -- It takes two cycles to reverse the direction
-type modetype is (M_RESET, M_RUN, M_JUMPF1, M_JUMPF2, M_JUMPB1, M_TXWAIT, M_RXWAIT);
+type modetype is (M_RESET, M_RUN, M_JUMPF1, M_JUMPF2, M_JUMPB1, M_RXWAIT);
 signal mode, mode_next : modetype := M_RESET;
 
 signal pc : pctype := (others => '0');
@@ -40,7 +40,6 @@ signal cache_ready, cache_ready_next : std_logic;
 signal skip, skip_next : std_logic;
 
 signal uart_busy, uart_busy_next : std_logic;
-signal uart_delay, uart_delay_next : std_logic;
 begin
 
 -- Stack for storing the program counter for faster return from branches
@@ -83,15 +82,12 @@ begin
         cache_ready <= cache_ready_next;
         skip <= skip_next;
         uart_busy <= uart_busy_next;
-        uart_delay <= uart_delay_next;
-
-        
     end if;
 end process;
 
 process(mode, pc, d_jumpf, d_jumpb, d_write, d_read, 
     stack_pc, alu_z, pc_cache, uart_tx_end, uart_rx_ready,
-    brackets, cache_valid, cache_ready, cache_out, skip, uart_busy, uart_delay)
+    brackets, cache_valid, cache_ready, cache_out, skip, uart_busy)
 begin
 
 stack_push_notpop <= '0';
@@ -105,8 +101,11 @@ pc_next <= std_logic_vector(unsigned(pc)+1);
 pc_cache_next <= pc_cache;
 mode_next <= M_RUN;
 skip_next <= '0';
-uart_busy_next <= uart_busy;
-uart_delay_next <= '0';
+if uart_tx_end = '1' then
+    uart_busy_next <= '0';
+else
+    uart_busy_next <= uart_busy;
+end if;
 stack_enable <= '0';
 case mode is
     
@@ -118,7 +117,7 @@ case mode is
         pc_next <= (others => '0');
         mode_next <= M_RUN;
         if d_write = '1' then
-            mode_next <= M_TXWAIT;
+            mode_next <= M_RUN;
         elsif d_read = '1' then
             mode_next <= M_RXWAIT;
         elsif d_jumpf = '1' then
@@ -194,25 +193,16 @@ case mode is
             -- We need to check alu_z on the next cycle
             mode_next <= M_JUMPB1;
         elsif d_write = '1' then
-            mode_next <= M_TXWAIT;
+            if uart_busy = '1' then
+                pc_next <= pc;
+                mode_next <= M_RUN;
+            else
+                uart_busy_next <= '1';
+                mode_next <= M_RUN;
+            end if;
         elsif d_read = '1' then
             pc_next <= pc;
             mode_next <= M_RXWAIT;
-        end if;
-        
-    when M_TXWAIT =>
-        -- We need to delay one cycle get right value for
-        -- uart_busy if last instruction was also a write.
-        uart_delay_next <= '1';
-        pc_next <= pc;
-        c_skip <= '1';
-        mode_next <= M_TXWAIT;
-        uart_busy_next <= '1';
-        if uart_tx_end = '1' then
-            uart_busy_next <= '0';
-        end if;
-        if uart_delay = '1' and (uart_busy = '0' or uart_tx_end = '1') then
-            mode_next <= M_RUN;
         end if;
     
     when M_RXWAIT =>
