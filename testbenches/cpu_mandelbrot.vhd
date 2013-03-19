@@ -5,10 +5,10 @@ USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 USE std.textio.all;
 
-ENTITY cpu_tb IS
-END cpu_tb;
+ENTITY cpu_mandelbrot_tb IS
+END cpu_mandelbrot_tb;
 
-ARCHITECTURE behavior OF cpu_tb IS 
+ARCHITECTURE behavior OF cpu_mandelbrot_tb IS 
 
 signal clk, reset, tx, rx : std_logic;
 
@@ -17,6 +17,25 @@ constant clk_period : time := 10 ns;
 
 signal uart_tx_req, uart_tx_end, uart_rx_ready : std_logic;
 signal uart_tx_data, uart_rx_data : std_logic_vector(7 downto 0);
+
+type testvectors is array(0 to 6191) of std_logic_vector(7 downto 0);
+
+impure function init_mem(mif_file_name : in string) return testvectors is
+    file mif_file : text open read_mode is mif_file_name;
+    variable mif_line : line;
+    variable temp_bv : bit_vector(7 downto 0);
+    variable temp_mem : testvectors;
+begin
+        for j in 0 to testvectors'length-1 loop
+            readline(mif_file, mif_line);
+            read(mif_line, temp_bv);
+            temp_mem(j) := to_stdlogicvector(temp_bv);
+        end loop;
+    return temp_mem;
+end function;
+
+signal vectors : testvectors := init_mem("testbenches/mandelbrot.mif");
+
 BEGIN
 -- Component Instantiation
       uut: entity work.cpu
@@ -31,7 +50,7 @@ BEGIN
     uart1 : entity work.uart
     Generic map(
         CLK_FREQ => 100,
-        SER_FREQ => 8000000,
+        SER_FREQ => 1000000,
         PARITY_BIT => false
     )
     Port map (
@@ -58,6 +77,18 @@ BEGIN
         end if;
     end process;
     
+    -- Test received bytes
+    test_process : process
+    begin
+        for i in 0 to 6191 loop
+            wait until uart_rx_ready = '1';
+            wait for clk_period;
+            assert uart_rx_data = vectors(i) report "Message "&integer'image(i)&" incorrect" severity note;
+        end loop;
+        wait until uart_rx_ready = '1';
+        assert false report "Received too many messages" severity failure;
+    end process;
+    
    -- Clock process definitions
    clk_process :process
    begin
@@ -74,13 +105,6 @@ BEGIN
     uart_tx_req <= '0';
     wait for 100 ns; -- wait until global set/reset completes
     reset <= '0';
-
--- Send character
-    uart_tx_req <= '1';
-    uart_tx_data <= x"41"; -- A
-    wait for clk_period;
-    uart_tx_req <= '0';
-    wait until uart_tx_end = '1';
     
     wait; -- will wait forever
  END PROCESS tb;
