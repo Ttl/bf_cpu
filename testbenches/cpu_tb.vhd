@@ -20,7 +20,7 @@ signal uart_tx_data, uart_rx_data : std_logic_vector(7 downto 0);
 BEGIN
 -- Component Instantiation
       uut: entity work.cpu
-      Generic map ( INSTRUCTIONS => "scripts/mandelbrot.mif"
+      Generic map ( INSTRUCTIONS => "scripts/branch.mif"
       )
       Port map(clk => clk,
                reset => reset,

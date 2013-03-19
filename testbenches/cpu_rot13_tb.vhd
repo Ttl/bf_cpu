@@ -29,7 +29,7 @@ BEGIN
     uart1 : entity work.uart
     Generic map(
         CLK_FREQ => 100,
-        SER_FREQ => 2000000,
+        SER_FREQ => 1000000,
         PARITY_BIT => false
     )
     Port map (
