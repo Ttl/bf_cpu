@@ -37,6 +37,9 @@ signal cache_ready, cache_ready_next : std_logic;
 
 -- Skip one instruction when skipping instructions with jumpf cache
 signal skip, skip_next : std_logic;
+
+signal uart_busy, uart_busy_next : std_logic;
+signal uart_delay, uart_delay_next : std_logic;
 begin
 
 -- Stack for storing the program counter for faster return from branches
@@ -78,12 +81,16 @@ begin
         brackets <= brackets_next;
         cache_ready <= cache_ready_next;
         skip <= skip_next;
+        uart_busy <= uart_busy_next;
+        uart_delay <= uart_delay_next;
+
+        
     end if;
 end process;
 
 process(mode, pc, d_jumpf, d_jumpb, d_write, d_read, 
     stack_pc, alu_z, pc_cache, uart_tx_end, uart_rx_ready,
-    brackets, cache_valid, cache_ready, cache_out, skip)
+    brackets, cache_valid, cache_ready, cache_out, skip, uart_busy, uart_delay)
 begin
 
 stack_push <= '0';
@@ -98,9 +105,12 @@ pc_next <= std_logic_vector(unsigned(pc)+1);
 pc_cache_next <= pc_cache;
 mode_next <= M_RUN;
 skip_next <= '0';
+uart_busy_next <= uart_busy;
+uart_delay_next <= '0';
 case mode is
     
     when M_RESET =>
+        uart_busy_next <= '0';
         pc_cache_next <= (others => '0');
         brackets_next <= to_unsigned(0,8);
         c_skip <= '1';
@@ -162,6 +172,7 @@ case mode is
         if alu_z = '1' then
             stack_pop <= '1';
             c_skip <= '1';
+            -- Necessary
             skip_next <= '1';
             pc_next <= std_logic_vector(unsigned(pc_cache));
         end if;
@@ -176,7 +187,6 @@ case mode is
         elsif d_jumpb = '1' and skip = '0' then
             pc_cache_next <= pc;
             pc_next <= stack_pc;
-            --c_skip <= '1';
             -- We need to check alu_z on the next cycle
             mode_next <= M_JUMPB1;
         elsif d_write = '1' then
@@ -187,10 +197,17 @@ case mode is
         end if;
         
     when M_TXWAIT =>
+        -- We need to delay one cycle get right value for
+        -- uart_busy if last instruction was also a write.
+        uart_delay_next <= '1';
         pc_next <= pc;
         c_skip <= '1';
         mode_next <= M_TXWAIT;
+        uart_busy_next <= '1';
         if uart_tx_end = '1' then
+            uart_busy_next <= '0';
+        end if;
+        if uart_delay = '1' and (uart_busy = '0' or uart_tx_end = '1') then
             mode_next <= M_RUN;
         end if;
     
