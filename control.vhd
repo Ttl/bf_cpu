@@ -27,7 +27,8 @@ signal pc_next, pc_cache, pc_cache_next : pctype;
 signal brackets, brackets_next : unsigned(7 downto 0);
 
 -- PC stack signals
-signal stack_push, stack_pop : std_logic;
+signal stack_push_notpop : std_logic;
+signal stack_enable : std_logic;
 signal stack_pc : pctype;
 
 -- Jumpf cache signals
@@ -46,8 +47,8 @@ begin
 pcstack : entity work.stack
     Port map( clk => clk,
               reset => reset,
-              push => stack_push,
-              pop => stack_pop,
+              enable => stack_enable,
+              push_notpop => stack_push_notpop,
               pcin => pc,
               pcout => stack_pc
               );
@@ -93,8 +94,7 @@ process(mode, pc, d_jumpf, d_jumpb, d_write, d_read,
     brackets, cache_valid, cache_ready, cache_out, skip, uart_busy, uart_delay)
 begin
 
-stack_push <= '0';
-stack_pop <= '0';
+stack_push_notpop <= '0';
 cache_push <= '0';
 cache_ready_next <= '0';
 c_skip <= '0';
@@ -107,6 +107,7 @@ mode_next <= M_RUN;
 skip_next <= '0';
 uart_busy_next <= uart_busy;
 uart_delay_next <= '0';
+stack_enable <= '0';
 case mode is
     
     when M_RESET =>
@@ -115,8 +116,6 @@ case mode is
         brackets_next <= to_unsigned(0,8);
         c_skip <= '1';
         pc_next <= (others => '0');
-        stack_push <= '0';
-        stack_pop <= '0';
         mode_next <= M_RUN;
         if d_write = '1' then
             mode_next <= M_TXWAIT;
@@ -129,12 +128,15 @@ case mode is
     
     when M_JUMPF1 =>
         if d_jumpf = '1' then
-            stack_push <= '1';
+            -- Two consecutive jumps, we need to push both of them to stack
+            stack_push_notpop <= '1';
+            stack_enable <= '1';
             brackets_next <= brackets + 1;
         end if;
         if alu_z = '1' then
             c_skip <= '1';
-            stack_pop <= '1';
+            stack_push_notpop <= '0';
+            stack_enable <= '1';
             mode_next <= M_JUMPF2;
         else
              -- Infinite loop, but do what we are told to do
@@ -170,7 +172,8 @@ case mode is
     when M_JUMPB1 =>
         mode_next <= M_RUN;
         if alu_z = '1' then
-            stack_pop <= '1';
+            stack_push_notpop <= '0';
+            stack_enable <= '1';
             c_skip <= '1';
             -- Necessary
             skip_next <= '1';
@@ -183,7 +186,8 @@ case mode is
             -- Jump forward
             pc_cache_next <= pc;
             mode_next <= M_JUMPF1;
-            stack_push <= '1';
+            stack_push_notpop <= '1';
+            stack_enable <= '1';
         elsif d_jumpb = '1' and skip = '0' then
             pc_cache_next <= pc;
             pc_next <= stack_pc;
