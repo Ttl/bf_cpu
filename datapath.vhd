@@ -86,7 +86,7 @@ alu1 : entity work.alu
            r => alu_result,
            z => alu_z);
 
-writedata <= alu_result(7 downto 0);
+writedata <= mem;
 
 end Behavioral;
 
