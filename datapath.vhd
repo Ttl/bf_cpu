@@ -62,11 +62,13 @@ end process;
 
 alua_out <= zeros&mem when d_alua = "00" else
             pointer when d_alua = "01" else
-            zeros&readdata;
+            zeros&readdata when d_alua = "10" else
+            (others => '-');
 
 alub_out <= "00" when d_alub = "00" else
             "01" when d_alub = "01" else
-            "11";
+            "11" when d_alub = "10" else
+            "--";
 
 reg_write <= (not d_alutoreg and not c_skip);
 
@@ -77,12 +79,23 @@ Port map( clk => clk,
        d1 => mem,
        we => reg_write
        );
-       
-alu1 : entity work.alu
-    Port map ( a => alua_out,
-           b => alub_out,
-           r => alu_result,
-           z => alu_z);
+           
+-- Adder
+process(alua_out, alub_out)
+variable sign_ext : std_logic_vector(REG_SIZE-1 downto 2);
+begin
+
+-- Sign extend the B port input
+sign_ext := (others => alub_out(1));
+alu_result <= std_logic_vector(unsigned(alua_out)+unsigned(sign_ext&alub_out));
+
+end process;
+
+-- Zero flag calculation.
+-- It is only checked after [ or ]
+-- This allows one cycle delay
+-- And we don't need to compare alu_result
+alu_z <= '1' when mem = x"00" else '0';
 
 writedata <= mem;
 
