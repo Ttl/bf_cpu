@@ -23,36 +23,59 @@ type cache_entry is
      valid : std_logic;
   end record;
   
-type cache_type is array(0 to 2**CACHE_SIZE-1) of cache_entry;
+type cache_type_single is array(0 to 2**CACHE_SIZE-1) of cache_entry;
+type cache_type is array(0 to 1) of cache_type_single;
 
-signal cache_mem : cache_type := (others => (valid => '0', data => (others => '-'), tag => (others => '-')));
+signal cache_mem : cache_type := (others => (others => (valid => '0', data => (others => '-'), tag => (others => '-'))));
+
 begin
 
 process(clk, reset, addr, din, push, cache_mem)
+variable random : unsigned(0 downto 0) := to_unsigned(0,1);
 begin
 
 if rising_edge(clk) then
+    
     if reset = '1' then
         for I in 0 to 2**CACHE_SIZE-1 loop
-            cache_mem(to_integer(to_unsigned(I, CACHE_SIZE))).valid <= '0';
+            cache_mem(0)(to_integer(to_unsigned(I, CACHE_SIZE))).valid <= '0';
+            cache_mem(1)(to_integer(to_unsigned(I, CACHE_SIZE))).valid <= '0';
         end loop;
     end if;
     
-    -- Write to current location
+    -- Write to free location or replace randomly
     if push = '1' then
-        cache_mem(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag <= addr(WIDTH-1 downto CACHE_SIZE);
-        cache_mem(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data <= din;
-        cache_mem(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid <= '1';
+        if cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid = '0' then
+            cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag <= addr(WIDTH-1 downto CACHE_SIZE);
+            cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data <= din;
+            cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid <= '1';
+        elsif cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid = '0' then
+            cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag <= addr(WIDTH-1 downto CACHE_SIZE);
+            cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data <= din;
+            cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid <= '1';
+        else
+            -- Both locations already occupied so decide randomly which to replace
+            cache_mem(to_integer(random))(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag <= addr(WIDTH-1 downto CACHE_SIZE);
+            cache_mem(to_integer(random))(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data <= din;
+            cache_mem(to_integer(random))(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid <= '1';
+        end if;
     end if;
     
     -- Set output if tag matches and entry is valid
-    if cache_mem(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid = '1' and cache_mem(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag = addr(WIDTH-1 downto CACHE_SIZE) then
+    if cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid = '1' 
+            and cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag = addr(WIDTH-1 downto CACHE_SIZE) then
         valid <= '1';
-        dout <= cache_mem(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data;
+        dout <= cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data;
+    elsif cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid = '1' 
+            and cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag = addr(WIDTH-1 downto CACHE_SIZE) then
+        valid <= '1';
+        dout <= cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data;
     else
         valid <= '0';
-        dout <= (others => '-');
+        dout <= (others => '-'); 
     end if;
+    
+    random := random + 1;
 end if;
 end process;
 
