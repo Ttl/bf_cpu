@@ -9,7 +9,6 @@ entity datapath is
            d_alutoreg : in  STD_LOGIC;
            d_alua : in STD_LOGIC_VECTOR(1 downto 0);
            d_alub : in STD_LOGIC_VECTOR(1 downto 0);
-           d_aluop : in STD_LOGIC_VECTOR(1 downto 0);
            readdata : in STD_LOGIC_VECTOR(7 downto 0);
            writedata : out STD_LOGIC_VECTOR(7 downto 0);
            alu_z : out STD_LOGIC);
@@ -18,7 +17,7 @@ end datapath;
 architecture Behavioral of datapath is
 
 signal alua_out : pointertype;
-signal alub_out : std_logic_vector(7 downto 0);
+signal alub_out : std_logic_vector(1 downto 0);
 signal alu_result : pointertype;
 
 -- Pointer to registers
@@ -65,9 +64,9 @@ alua_out <= zeros&mem when d_alua = "00" else
             pointer when d_alua = "01" else
             zeros&readdata;
 
-alub_out <= x"00" when d_alub = "00" else
-            x"01" when d_alub = "01" else
-            x"FF";
+alub_out <= "00" when d_alub = "00" else
+            "01" when d_alub = "01" else
+            "11";
 
 reg_write <= (not d_alutoreg and not c_skip);
 
@@ -82,7 +81,6 @@ Port map( clk => clk,
 alu1 : entity work.alu
     Port map ( a => alua_out,
            b => alub_out,
-           op => d_aluop,
            r => alu_result,
            z => alu_z);
 

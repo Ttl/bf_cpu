@@ -12,7 +12,6 @@ entity decoder is
            d_alub : out STD_LOGIC_VECTOR(1 downto 0);
            d_write : out STD_LOGIC;
            d_read : out STD_LOGIC;
-           d_aluop : out STD_LOGIC_VECTOR(1 downto 0);
            d_jumpf : out STD_LOGIC;
            d_jumpb : out STD_LOGIC
            );
@@ -25,13 +24,6 @@ begin
 
 process(instr)
 begin
-
-
--- d_aluop
--- 00 : add
--- 01 : illegal
--- 10 : pass a
--- 11 : pass b
 
 -- d_alutoreg
 -- 0 : write alu result to mem(pointer)
@@ -57,7 +49,6 @@ d_alub <= "00";
 d_alua <= "00";
 d_write <= '0';
 d_read <= '0';
-d_aluop <= "00";
 d_jumpf <= '0';
 d_jumpb <= '0';
 

@@ -19,15 +19,15 @@ signal instr : std_logic_vector(7 downto 0);
 
 -- Decoder signals
 signal d_alutoreg : std_logic;
-signal d_alua, d_alub, d_aluop : std_logic_vector(1 downto 0);
+signal d_alua, d_alub : std_logic_vector(1 downto 0);
 signal d_write, d_read : std_logic;
 signal d_jumpf, d_jumpb : std_logic;
 
 signal pc : pctype;
 
 -- RAM signals
-signal i_wd : std_logic_vector(7 downto 0) := (others => '0');
-signal i_we : std_logic := '0';
+constant i_wd : std_logic_vector(7 downto 0) := (others => '0');
+constant i_we : std_logic := '0';
 
 -- Datapath signals
 signal readdata, writedata : std_logic_vector(7 downto 0);
@@ -43,7 +43,7 @@ signal c_skip : std_logic;
 
 -- Execute state signals
 signal e_alutoreg, e_skip : std_logic;
-signal e_alua, e_alub, e_aluop : std_logic_vector(1 downto 0);
+signal e_alua, e_alub : std_logic_vector(1 downto 0);
 
 --pragma synthesis_off
 -- Currently executing instruction
@@ -68,7 +68,6 @@ decoder1 : entity work.decoder
            d_alub => d_alub,
            d_write => d_write,
            d_read => d_read,
-           d_aluop => d_aluop,
            d_jumpf => d_jumpf,
            d_jumpb => d_jumpb
            );
@@ -93,7 +92,6 @@ if rising_edge(clk) then
     e_alutoreg <= d_alutoreg;
     e_alua <= d_alua;
     e_alub <= d_alub;
-    e_aluop <= d_aluop;
     e_skip <= c_skip;
     --pragma synthesis_off
     instr_ex <= instr;
@@ -108,7 +106,6 @@ datapath1 : entity work.datapath
            d_alutoreg => e_alutoreg,
            d_alua => e_alua,
            d_alub => e_alub,
-           d_aluop => e_aluop,
            readdata => readdata,
            writedata => writedata,
            alu_z => alu_z);     
