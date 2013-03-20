@@ -23,7 +23,9 @@ type modetype is (M_RESET, M_RUN, M_JUMPF1, M_JUMPF2, M_JUMPB1, M_RXWAIT);
 signal mode, mode_next : modetype := M_RESET;
 
 signal pc : pctype := (others => '0');
-signal pc_next, pc_cache, pc_cache_next : pctype;
+signal pc_next : std_logic_vector(INST_MEM_SIZE downto 0);
+signal pc_cache, pc_cache_next : pctype;
+signal pc_overflow : std_logic;
 signal brackets, brackets_next : unsigned(7 downto 0);
 
 -- PC stack signals
@@ -65,7 +67,7 @@ jumpf_cache: entity work.cache
            dout => cache_out
            );
 
-pc_out <= pc_next;
+pc_out <= pc_next(INST_MEM_SIZE-1 downto 0);
 
 
 process(clk, mode_next, pc_next, pc_cache_next)
@@ -76,7 +78,12 @@ begin
         else
             mode <= mode_next;
         end if;
-        pc <= pc_next;
+        -- Program ended enter infinite loop
+        if pc_overflow = '1' then
+            pc <= pc;
+        else
+            pc <= pc_next(INST_MEM_SIZE-1 downto 0);
+        end if;
         pc_cache <= pc_cache_next;
         brackets <= brackets_next;
         cache_ready <= cache_ready_next;
@@ -95,7 +102,8 @@ cache_push <= '0';
 cache_ready_next <= '0';
 c_skip <= '0';
 brackets_next <= brackets;
-pc_next <= std_logic_vector(unsigned(pc)+1);
+pc_next <= std_logic_vector(unsigned('0'&pc)+1);
+pc_overflow <= pc_next(INST_MEM_SIZE);
 -- Save next PC so we can get back where we were
 -- if jump was predicted incorrectly
 pc_cache_next <= pc_cache;
@@ -140,7 +148,7 @@ case mode is
         else
              -- Infinite loop, but do what we are told to do
             if d_jumpb = '1' then
-                pc_next <= pc_cache;
+                pc_next <= '0'&pc_cache;
             end if;
             mode_next <= M_RUN;
         end if;
@@ -165,7 +173,7 @@ case mode is
             -- Skip the next instruction
             skip_next <= '1';
             mode_next <= M_RUN;
-            pc_next <= cache_out;
+            pc_next <= '0'&cache_out;
         end if;
         
     when M_JUMPB1 =>
@@ -176,7 +184,7 @@ case mode is
             c_skip <= '1';
             -- Necessary
             skip_next <= '1';
-            pc_next <= std_logic_vector(unsigned(pc_cache));
+            pc_next <= '0'&pc_cache;
         end if;
         
     when M_RUN =>
@@ -189,27 +197,27 @@ case mode is
             stack_enable <= '1';
         elsif d_jumpb = '1' and skip = '0' then
             pc_cache_next <= pc;
-            pc_next <= stack_pc;
+            pc_next <= '0'&stack_pc;
             -- We need to check alu_z on the next cycle
             mode_next <= M_JUMPB1;
         elsif d_write = '1' then
             if uart_busy = '1' then
-                pc_next <= pc;
+                pc_next <= '0'&pc;
                 mode_next <= M_RUN;
             else
                 uart_busy_next <= '1';
                 mode_next <= M_RUN;
             end if;
         elsif d_read = '1' then
-            pc_next <= pc;
+            pc_next <= '0'&pc;
             mode_next <= M_RXWAIT;
         end if;
     
     when M_RXWAIT =>
-        pc_next <= pc;
+        pc_next <= '0'&pc;
         mode_next <= M_RXWAIT;
         if uart_rx_ready = '1' then
-            pc_next <= std_logic_vector(unsigned(pc)+1);
+            pc_next <= std_logic_vector(unsigned('0'&pc)+1);
             mode_next <= M_RUN;
         end if;
         
