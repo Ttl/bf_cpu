@@ -81,7 +81,7 @@ case instr is
     -- ,
     when x"2C" =>
         d_read <= '1';
-        d_alua <= "11";
+        d_alua <= "10";
         
     -- [
     when x"5B" =>
