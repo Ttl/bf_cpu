@@ -16,66 +16,71 @@ end cache;
 
 architecture Behavioral of cache is
 
-type cache_entry is
-  record
-     tag : std_logic_vector(WIDTH-1 downto CACHE_SIZE);
-     data : std_logic_vector(DWIDTH-1 downto 0);
-     valid : std_logic;
-  end record;
-  
-type cache_type_single is array(0 to 2**CACHE_SIZE-1) of cache_entry;
-type cache_type is array(0 to 1) of cache_type_single;
+type cache_type_data is array(0 to 2**CACHE_SIZE-1) of std_logic_vector(DWIDTH-1 downto 0);
+type cache_type_tag is array(0 to 2**CACHE_SIZE-1) of std_logic_vector(WIDTH-1 downto CACHE_SIZE);
 
-signal cache_mem : cache_type := (others => (others => (valid => '0', data => (others => '-'), tag => (others => '-'))));
+signal last_used : std_logic_vector(2**CACHE_SIZE-1 downto 0);
+signal valid0, valid1 : std_logic_vector(2**CACHE_SIZE-1 downto 0);
+
+signal cache0_d, cache1_d : cache_type_data;
+signal cache0_t, cache1_t : cache_type_tag;
 
 begin
 
-process(clk, reset, addr, din, push, cache_mem)
-variable random : unsigned(0 downto 0) := to_unsigned(0,1);
+process(clk, reset, addr, din, push)
 begin
 
 if rising_edge(clk) then
     
     if reset = '1' then
         for I in 0 to 2**CACHE_SIZE-1 loop
-            cache_mem(0)(to_integer(to_unsigned(I, CACHE_SIZE))).valid <= '0';
-            cache_mem(1)(to_integer(to_unsigned(I, CACHE_SIZE))).valid <= '0';
+            valid0(to_integer(to_unsigned(I, CACHE_SIZE))) <= '0';
+            valid1(to_integer(to_unsigned(I, CACHE_SIZE))) <= '0';
         end loop;
     end if;
     
     -- Write to free location or replace randomly
     if push = '1' then
-        if cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid = '0' then
-            cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag <= addr(WIDTH-1 downto CACHE_SIZE);
-            cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data <= din;
-            cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid <= '1';
-        elsif cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid = '0' then
-            cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag <= addr(WIDTH-1 downto CACHE_SIZE);
-            cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data <= din;
-            cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid <= '1';
+        if valid0(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) = '0' then
+            cache0_t(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= addr(WIDTH-1 downto CACHE_SIZE);
+            cache0_d(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= din;
+            valid0(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= '1';
+            last_used(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= '0';
+        elsif valid1(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) = '0' then
+            cache1_t(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= addr(WIDTH-1 downto CACHE_SIZE);
+            cache1_d(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= din;
+            valid1(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= '1';
+            last_used(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= '1';
         else
-            -- Both locations already occupied so decide randomly which to replace
-            cache_mem(to_integer(random))(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag <= addr(WIDTH-1 downto CACHE_SIZE);
-            cache_mem(to_integer(random))(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data <= din;
-            cache_mem(to_integer(random))(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid <= '1';
+            -- Both locations already occupied so decide least recently used
+            if last_used(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) = '0' then
+                cache1_t(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= addr(WIDTH-1 downto CACHE_SIZE);
+                cache1_d(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= din;
+                valid1(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= '1';
+                last_used(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= '1';
+            else
+                cache0_t(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= addr(WIDTH-1 downto CACHE_SIZE);
+                cache0_d(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= din;
+                valid0(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= '1';
+                last_used(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= '0';
+            end if;
         end if;
     end if;
     
     -- Set output if tag matches and entry is valid
-    if cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid = '1' 
-            and cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag = addr(WIDTH-1 downto CACHE_SIZE) then
+    if valid0(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) = '1'  
+            and cache0_t(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) = addr(WIDTH-1 downto CACHE_SIZE) then
         valid <= '1';
-        dout <= cache_mem(0)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data;
-    elsif cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).valid = '1' 
-            and cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).tag = addr(WIDTH-1 downto CACHE_SIZE) then
+        dout <= cache0_d(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0))));
+    elsif valid1(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) = '1'  
+            and cache1_t(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) = addr(WIDTH-1 downto CACHE_SIZE) then
         valid <= '1';
-        dout <= cache_mem(1)(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))).data;
+        dout <= cache1_d(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0))));
     else
         valid <= '0';
         dout <= (others => '-'); 
     end if;
     
-    random := random + 1;
 end if;
 end process;
 
