@@ -17,7 +17,6 @@ end datapath;
 architecture Behavioral of datapath is
 
 signal alua_out : pointertype;
-signal alub_out : std_logic_vector(1 downto 0);
 signal alu_result : pointertype;
 
 -- Pointer to registers
@@ -37,11 +36,16 @@ begin
 -- 10 : read from input
 -- 11 : illegal
 
+-- First bit of d_alub is extended
+-- extended to adder bits 2 ->
+-- This allows to make three necessat constants-
+-- with two bits and without multiplexer
+
 -- d_alub
 -- 00 : 0
 -- 01 : 1
--- 10 : -1
--- 11 : illegal
+-- 10 : Illegal
+-- 11 : -1
 
 -- d_alutoreg
 -- 0 : write alu result to mem(pointer)
@@ -65,11 +69,6 @@ alua_out <= zeros&mem when d_alua = "00" else
             zeros&readdata when d_alua = "10" else
             (others => '-');
 
-alub_out <= "00" when d_alub = "00" else
-            "01" when d_alub = "01" else
-            "11" when d_alub = "10" else
-            "--";
-
 reg_write <= (not d_alutoreg and not c_skip);
 
 regs : entity work.reg_file
@@ -81,13 +80,13 @@ Port map( clk => clk,
        );
            
 -- Adder
-process(alua_out, alub_out)
+process(alua_out, d_alub)
 variable sign_ext : std_logic_vector(REG_SIZE-1 downto 2);
 begin
 
 -- Sign extend the B port input
-sign_ext := (others => alub_out(1));
-alu_result <= std_logic_vector(unsigned(alua_out)+unsigned(sign_ext&alub_out));
+sign_ext := (others => d_alub(1));
+alu_result <= std_logic_vector(unsigned(alua_out)+unsigned(sign_ext&d_alub));
 
 end process;
 

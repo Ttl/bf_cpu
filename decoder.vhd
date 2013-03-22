@@ -38,8 +38,8 @@ begin
 -- d_alub
 -- 00 : 0
 -- 01 : 1
--- 10 : -1
--- 11 : illegal
+-- 10 : Illegal
+-- 11 : -1
 
 -- d_write
 -- 1 : write alu result to output
@@ -58,7 +58,7 @@ case instr is
     when x"3C" =>
         d_alutoreg <= '1';
         d_alua <= "01";
-        d_alub <= "10";
+        d_alub <= "11";
     
     -- >
     when x"3E" =>
@@ -72,7 +72,7 @@ case instr is
     
     -- -
     when x"2D" =>
-        d_alub <= "10";
+        d_alub <= "11";
     
     -- .
     when x"2E" =>
