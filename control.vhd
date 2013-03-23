@@ -41,7 +41,14 @@ signal cache_ready, cache_ready_next : std_logic;
 -- Skip one instruction when skipping instructions with jumpf cache
 signal skip, skip_next : std_logic;
 
-signal uart_busy, uart_busy_next : std_logic;
+--pragma synthesis_off
+signal mispredict, mispredict_next  : unsigned(31 downto 0) := to_unsigned(0,32);
+signal predict, predict_next : unsigned(31 downto 0) := to_unsigned(0,32);
+
+signal cache_miss, cache_miss_next  : unsigned(31 downto 0) := to_unsigned(0,32);
+signal cache_hit, cache_hit_next : unsigned(31 downto 0) := to_unsigned(0,32);
+signal cache_ready_prev : std_logic;
+--pragma synthesis_on
 begin
 
 -- Stack for storing the program counter for faster return from branches
@@ -88,13 +95,22 @@ begin
         brackets <= brackets_next;
         cache_ready <= cache_ready_next;
         skip <= skip_next;
-        uart_busy <= uart_busy_next;
+        
+        --pragma synthesis_off
+        predict <= predict_next;
+        mispredict <= mispredict_next;
+        cache_hit <= cache_hit_next;
+        cache_miss <= cache_miss_next;
+        cache_ready_prev <= cache_ready;
+        --pragma synthesis_on
+
     end if;
 end process;
 
 process(mode, pc, d_jumpf, d_jumpb, d_write, d_read, 
     stack_pc, alu_z, pc_cache, uart_tx_end, uart_rx_ready,
-    brackets, cache_valid, cache_ready, cache_out, skip, uart_busy)
+    brackets, cache_valid, cache_ready, cache_out, skip)
+    
 begin
 
 stack_push_notpop <= '0';
@@ -109,16 +125,10 @@ pc_overflow <= pc_next(INST_MEM_SIZE);
 pc_cache_next <= pc_cache;
 mode_next <= M_RUN;
 skip_next <= '0';
-if uart_tx_end = '1' then
-    uart_busy_next <= '0';
-else
-    uart_busy_next <= uart_busy;
-end if;
 stack_enable <= '0';
 case mode is
     
     when M_RESET =>
-        uart_busy_next <= '0';
         pc_cache_next <= (others => '0');
         brackets_next <= to_unsigned(0,8);
         c_skip <= '1';
@@ -171,20 +181,41 @@ case mode is
         end if;
         if cache_valid = '1' and cache_ready = '1' then
             -- Skip the next instruction
+            --pragma synthesis_off
+            cache_hit_next <= cache_hit+1;
+            cache_miss_next <= cache_miss;
+            --pragma synthesis_on
+            
             skip_next <= '1';
             mode_next <= M_RUN;
             pc_next <= '0'&cache_out;
+        --pragma synthesis_off
+        elsif cache_ready = '1' and cache_ready_prev = '0' then
+            -- We need to check previous cache_ready value
+            -- to avoid double counting
+            cache_hit_next <= cache_hit;
+            cache_miss_next <= cache_miss+1;
+        --pragma synthesis_on
         end if;
         
     when M_JUMPB1 =>
         mode_next <= M_RUN;
         if alu_z = '1' then
+            --pragma synthesis_off
+             mispredict_next <= mispredict + 1;
+             predict_next <= predict;
+            --pragma synthesis_on
             stack_push_notpop <= '0';
             stack_enable <= '1';
             c_skip <= '1';
             -- Necessary
             skip_next <= '1';
             pc_next <= '0'&pc_cache;
+        else
+            --pragma synthesis_off
+             mispredict_next <= mispredict;
+             predict_next <= predict + 1;
+            --pragma synthesis_on
         end if;
         
     when M_RUN =>
@@ -201,11 +232,10 @@ case mode is
             -- We need to check alu_z on the next cycle
             mode_next <= M_JUMPB1;
         elsif d_write = '1' then
-            if uart_busy = '1' then
+            if uart_tx_end = '0' then
                 pc_next <= '0'&pc;
                 mode_next <= M_RUN;
             else
-                uart_busy_next <= '1';
                 mode_next <= M_RUN;
             end if;
         elsif d_read = '1' then
@@ -222,6 +252,9 @@ case mode is
         end if;
         
 end case;
+
+
+            
 end process;
 
 end Behavioral;
