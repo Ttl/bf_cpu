@@ -110,7 +110,7 @@ datapath1 : entity work.datapath
            writedata => writedata,
            alu_z => alu_z);     
 
-uart_tx_req <= d_write and not c_skip;
+uart_tx_req <= d_write and not e_skip;
 
 --pragma synthesis_off
 -- Print sent data
@@ -127,12 +127,25 @@ end if;
 wait until uart_tx_end = '1';
 
 end process;
+
+-- Print received data
+process
+begin
+wait until uart_rx_ready = '1';
+wait until rising_edge(clk);
+if to_integer(unsigned(readdata)) > 31 and to_integer(unsigned(readdata)) < 127 then
+    report "Received ASCII: "&character'image(character'val(to_integer(unsigned(readdata))));
+else
+    report "Received Dec: "&integer'image(to_integer(unsigned(readdata)));
+end if;
+
+end process;
 --pragma synthesis_on
 
 uart1 : entity work.uart
 Generic map(
-	CLK_FREQ => 100,
-	SER_FREQ => 1000000,
+	CLK_FREQ => 72,
+	SER_FREQ => 115200,
 	PARITY_BIT => false
 )
 Port map (
