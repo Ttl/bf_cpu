@@ -3,8 +3,9 @@ use IEEE.STD_LOGIC_1164.all;
 
 package bfconfig is
 
+    -- Sizes are log2 of full sizes
     constant INST_MEM_SIZE : integer := 14;
-    constant JUMPF_CACHE_SIZE : integer := 4; -- Log2 of cache size
+    constant JUMPF_CACHE_SIZE : integer := 3;
     constant STACK_SIZE : integer := 8;
     constant REG_SIZE : integer := 9;
     
