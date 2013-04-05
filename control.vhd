@@ -233,6 +233,7 @@ case mode is
             mode_next <= M_JUMPB1;
         elsif d_write = '1' then
             if uart_tx_end = '0' then
+                c_skip <= '1';
                 pc_next <= '0'&pc;
                 mode_next <= M_RUN;
             else
