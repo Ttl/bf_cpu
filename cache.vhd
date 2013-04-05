@@ -11,7 +11,7 @@ entity cache is
            din : in  STD_LOGIC_VECTOR (WIDTH-1 downto 0);
            push : in  STD_LOGIC;
            valid : out  STD_LOGIC;
-           dout : out  STD_LOGIC_VECTOR (WIDTH-1 downto 0));
+           dout : out  STD_LOGIC_VECTOR (DWIDTH-1 downto 0));
 end cache;
 
 architecture Behavioral of cache is
@@ -52,7 +52,7 @@ if rising_edge(clk) then
             valid1(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= '1';
             last_used(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= '1';
         else
-            -- Both locations already occupied so decide least recently used
+            -- Both locations are already occupied so replace the least recently used
             if last_used(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) = '0' then
                 cache1_t(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= addr(WIDTH-1 downto CACHE_SIZE);
                 cache1_d(to_integer(unsigned(addr(CACHE_SIZE-1 downto 0)))) <= din;
