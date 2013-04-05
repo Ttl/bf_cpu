@@ -1,0 +1,15 @@
+Pipelined brainfuck microprocessor
+
+To program:
+
+Use "bftomif.py" python program to turn your brainfuck program to mif memory file,
+pad with zeroes if necessary to fill the memory.
+
+Quick overview:
+
+memory.vhd : Instruction RAM, synchronous read and write
+decoder.vhd : Instruction decoder
+control.vhd : Program flow control, decides the next instruction and skips the next instruction if needed.
+datapath.vhd : Datapath, registers, adder and multiplexers. Executes the instruction.
+uart.vhd : UART for communication with outside world.
+cpu.vhd : Top-level file that connects the other blocks.

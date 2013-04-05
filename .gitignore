@@ -2,6 +2,8 @@
 !/scripts
 !/testbenches
 !.gitignore
+!Readme
+!LICENSE
 !*.vhd
 !*.mif
 !*.py
