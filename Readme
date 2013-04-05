@@ -7,9 +7,13 @@ pad with zeroes if necessary to fill the memory.
 
 Quick overview:
 
-memory.vhd : Instruction RAM, synchronous read and write
-decoder.vhd : Instruction decoder
+cache.vhd : 2-way associative cache that can be configured with generics. Used for forward jumps.
+config.vhd : CPU configuration.
 control.vhd : Program flow control, decides the next instruction and skips the next instruction if needed.
-datapath.vhd : Datapath, registers, adder and multiplexers. Executes the instruction.
-uart.vhd : UART for communication with outside world.
 cpu.vhd : Top-level file that connects the other blocks.
+datapath.vhd : Datapath, registers, adder and multiplexers. Executes the instruction.
+decoder.vhd : Instruction decoder. Outputs signals that control the datapath.
+memory.vhd : Instruction RAM, synchronous read and write.
+reg_file.vhd : Registers, like instruction RAM but with asynchronous read.
+stack.vhd : Stack, used to store backwards jump destinations.
+uart.vhd : UART for communication with outside world.
